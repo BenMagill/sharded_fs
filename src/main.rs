@@ -1,7 +1,5 @@
 mod files;
-use std::{fs::File, io::{Write, Read}, future};
-use std::fs;
-use actix_web::{get, App, HttpServer, HttpResponse, Responder, rt, web};
+use actix_web::{App, HttpServer, web};
 use files::file_config;
 use futures;
 

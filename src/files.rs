@@ -1,9 +1,7 @@
-use std::{fs::{self, rename, copy}, path::{Path, PathBuf}, env::temp_dir, time::Duration};
+use std::{fs::{self, rename, copy}, path::{Path, PathBuf}, io::Error};
 
-use actix_multipart::{form::{MultipartForm, text::Text, tempfile::{TempFile, TempFileConfig, TempFileError}}, Multipart};
-use actix_rt::time::sleep;
-use actix_web::{web, Responder, HttpRequest, get};
-use futures::StreamExt;
+use actix_multipart::{form::{MultipartForm, text::Text, tempfile::{TempFile, TempFileConfig}}};
+use actix_web::{web, Responder};
 
 async fn index() -> impl Responder {
     "Hello!"
@@ -32,19 +30,16 @@ async fn write(form: MultipartForm<FileUpload>) -> impl Responder {
     let temp_name = form.file.file.path();
     let path = get_path(form.file_name.0.as_str());
 
-    return match rename(temp_name, &path) {
-        Ok(_) => { "ok" },
-        Err(e) => { 
-            println!("{}", e.to_string());
-            println!("Having to copy file instead of move");
-            return match copy(temp_name, &path) {
-                Ok(_) => { "ok" },
-                Err(e) => {
-                    println!("{}", e.to_string());
-                    "error"
-                }
-            };
+    return match move_file(temp_name, path) {
+        Ok(no_copy) => {
+            if (no_copy) { println!("Could not move file, had to copy") };
+            "Ok"
         },
+        Err((e1, e2)) => {
+            println!("Error from move: {}", e1);
+            println!("Error from copy: {}", e2);
+            "Error"
+        }
     };
 }
 
@@ -52,9 +47,21 @@ fn get_path(filename: &str) -> PathBuf {
     return Path::new("files").join(filename);
 }
 
-fn write_to_file(filename: &str, buf: &[u8]) -> Result<(), std::io::Error> {
-    // TODO: safely create
-    return fs::write(get_path(filename), buf);
+fn move_file<T: AsRef<Path>, S: AsRef<Path>>(from: T, to: S) -> Result<bool, (Error, Error)> {
+    return match rename(&from, &to) {
+        Ok(_) => { Ok(true) },
+        Err(e) => { 
+            // println!("{}", e.to_string());
+            // println!("Having to copy file instead of move");
+            return match copy(&from, &to) {
+                Ok(_) => { Ok(false) },
+                Err(e2) => {
+                    // println!("{}", e.to_string());
+                    Err((e, e2))
+                }
+            };
+        },
+    };
 }
 
 fn read_from_file(filename: &str) -> std::io::Result<Vec<u8>> {

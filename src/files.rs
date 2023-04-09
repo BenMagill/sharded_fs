@@ -6,10 +6,13 @@ async fn index() -> impl Responder {
     "Hello!"
 }
 
-async fn read(path: web::Path<(String)>) -> impl Responder {
-    let (file_name) = path.into_inner();
-    println!("{}", file_name);
-    return "Ok";
+async fn read(path: web::Path<String>) -> impl Responder {
+    let file_name = path.into_inner();
+
+    return match read_from_file(file_name.as_str()) {
+        Ok(contents) => { contents },
+        Err(_) => { "Could not find file".as_bytes().to_vec() },
+    };
 }
 
 fn get_path(filename: &str) -> PathBuf {

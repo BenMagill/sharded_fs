@@ -1,7 +1,7 @@
 mod files;
-use std::{path::{PathBuf, Path}, sync::{Arc, Mutex}};
 
-use actix_web::{App, HttpServer, web::{self, Data}};
+
+use actix_web::{App, HttpServer, web::{self}};
 use files::file_config;
 use futures;
 

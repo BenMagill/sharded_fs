@@ -1,4 +1,5 @@
 mod files;
+mod librarian;
 
 
 use actix_web::{App, HttpServer, web::{self}};
@@ -10,12 +11,15 @@ async fn main() -> std::io::Result<()> {
     let server = HttpServer::new(move || {
         App::new()
             .service(web::scope("/files").configure(file_config))
+            .service(web::resource("/health")
+                .route(web::get().to(|| async {"ok"}))
+            )
     })
         .bind(("127.0.0.1", 8080))
         .unwrap()
         .run();
 
-    // TODO: this would ideally be a lower level 
+    // TODO: this would ideally be a lower level not http
     let other_server = HttpServer::new(|| {
         App::new()
             // .service(web::scope("/files").configure(file_config))

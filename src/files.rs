@@ -8,11 +8,12 @@ struct FilesConfig {
     temp_folder: PathBuf,
 }
 
-async fn index() -> impl Responder {
-    "Hello!"
+#[derive(Debug, MultipartForm)]
+struct FileUpload {
+    file_name: Text<String>,
+    file: TempFile,
 }
 
-// TODO: stream result for large files? 
 async fn read(req: HttpRequest, path: web::Path<String>) -> impl Responder {
     let config = req.app_data::<Data<FilesConfig>>()
         .unwrap();
@@ -25,18 +26,10 @@ async fn read(req: HttpRequest, path: web::Path<String>) -> impl Responder {
     };
 }
 
-#[derive(Debug, MultipartForm)]
-struct FileUpload {
-    file_name: Text<String>,
-    file: TempFile,
-}
-
 async fn write(req: HttpRequest, form: MultipartForm<FileUpload>) -> impl Responder {
     let config = req.app_data::<Data<FilesConfig>>()
         .unwrap();
     
-    println!("{}", form.file_name.0);
-    println!("{}", form.file.file.path().to_str().unwrap());
     let temp_name = form.file.file.path();
     let path = get_path(config, form.file_name.0.as_str());
 
@@ -53,21 +46,10 @@ async fn write(req: HttpRequest, form: MultipartForm<FileUpload>) -> impl Respon
     };
 }
 
-// fn get_temp_folder() -> PathBuf {
-//     Path::new("temp").to_owned()
-// }
-
-// fn get_storage_folder() -> PathBuf {
-//     Path::new("files").to_owned()
-// }
-
 fn get_path(config: &Data<FilesConfig>, filename: &str) -> PathBuf {
     return config.storage_folder.join(filename);
 }
 
-/**
- * Ok(bool): true when used fs move, false when had to copy 
- */
 fn move_file<T: AsRef<Path>, S: AsRef<Path>>(from: T, to: S) -> Result<bool, (Error, Error)> {
     return match rename(&from, &to) {
         Ok(_) => { Ok(true) },
@@ -99,10 +81,6 @@ pub fn file_config(cfg: &mut web::ServiceConfig) {
     let a = Data::new(config);
 
     cfg.app_data(Data::clone(&a));
-    cfg.service(
-        web::resource("/")
-            .route(web::get().to(index))
-    );
     cfg.service(
         web::resource("/read/{file_name}")
             .route(web::get().to(read))

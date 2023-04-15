@@ -3,7 +3,7 @@ use std::{fs::{self, rename, copy}, path::{Path, PathBuf}, io::Error, sync::{Arc
 use actix_multipart::{form::{MultipartForm, text::Text, tempfile::{TempFile, TempFileConfig}}};
 use actix_web::{web::{self, Data}, Responder, HttpRequest};
 
-use crate::librarian::Library;
+use crate::{librarian::Library, authenticator::AuthMiddleware};
 
 struct FilesConfig {
     storage_folder: PathBuf,
@@ -39,7 +39,7 @@ pub fn file_config(cfg: &mut web::ServiceConfig) {
     );
 }
 
-async fn read(req: HttpRequest, path: web::Path<String>) -> impl Responder {
+async fn read(req: HttpRequest, path: web::Path<String>, _: AuthMiddleware) -> impl Responder {
     let config = req.app_data::<Data<FilesConfig>>()
         .unwrap();
     let file_name = path.into_inner();
@@ -59,7 +59,7 @@ async fn read(req: HttpRequest, path: web::Path<String>) -> impl Responder {
     };
 }
 
-async fn write(req: HttpRequest, form: MultipartForm<FileUpload>) -> impl Responder {
+async fn write(req: HttpRequest, form: MultipartForm<FileUpload>, _: AuthMiddleware) -> impl Responder {
     let config = req.app_data::<Data<FilesConfig>>()
         .unwrap();
 

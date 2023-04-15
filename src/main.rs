@@ -1,6 +1,6 @@
 mod files;
 mod librarian;
-
+mod authenticator;
 
 use std::sync::{Arc, Mutex};
 

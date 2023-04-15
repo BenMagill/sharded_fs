@@ -2,7 +2,7 @@ mod files;
 mod librarian;
 mod authenticator;
 
-use std::sync::{Arc, Mutex};
+use std::{sync::{Arc, Mutex}, env::{args, self}};
 
 use actix_web::{App, HttpServer, web::{self, Data}};
 use files::file_config;
@@ -10,11 +10,19 @@ use futures;
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
+    let env_args: Vec<String> = env::args().collect();
+    
+    let port = match env_args[1].parse::<u16>() {
+        Ok(i) => i,
+        Err(_) => 8080,
+    };
+
     let lib = Arc::new(Mutex::new(librarian::Library::new()));
 
     let lib_server = lib.clone();
 
-    let server = HttpServer::new(move || {
+    println!("Running on port {}", port);
+    HttpServer::new(move || {
         App::new()
             .app_data(lib_server.clone())
             .service(web::scope("/files").configure(file_config))
@@ -22,9 +30,9 @@ async fn main() -> std::io::Result<()> {
                 .route(web::get().to(|| async {"ok"}))
             )
     })
-        .bind(("127.0.0.1", 8080))
+        .bind(("127.0.0.1", port))
         .unwrap()
-        .run().await;
+        .run().await
 
     // TODO: this would ideally be a lower level not http
     // let other_server = HttpServer::new(|| {
@@ -37,6 +45,6 @@ async fn main() -> std::io::Result<()> {
     
     // futures::join!(server, other_server);
 
-    return Ok(());
+    // return Ok(());
 }
 

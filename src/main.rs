@@ -1,5 +1,7 @@
 mod files;
 mod librarian;
+mod node_manager;
+mod comms;
 
 
 use std::sync::{Arc, Mutex};
@@ -7,6 +9,8 @@ use std::sync::{Arc, Mutex};
 use actix_web::{App, HttpServer, web::{self, Data}};
 use files::file_config;
 use futures;
+
+use crate::comms::comms_config;
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
@@ -18,6 +22,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(lib_server.clone())
             .service(web::scope("/files").configure(file_config))
+            .service(web::scope("/internals").configure(comms_config))
             .service(web::resource("/health")
                 .route(web::get().to(|| async {"ok"}))
             )
